@@ -1,0 +1,15 @@
+ipdb==0.13.3
+matplotlib
+nltk==3.5
+numpy==1.18.5
+openml==0.11.0
+pandas
+scikit-learn==0.23.1
+scipy
+seaborn==0.10.1
+sklearn==0.0
+tensorboard==2.2.2
+torch==1.5.1
+torchattacks==2.13.2
+torchvision==0.6.1
+tqdm==4.48.0

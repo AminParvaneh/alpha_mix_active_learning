@@ -6,9 +6,6 @@ from torch.autograd import Variable
 
 from .strategy import Strategy
 from sklearn.cluster import KMeans
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.metrics import pairwise_distances
-from scipy import stats
 import torch
 import torch.nn.functional as F
 
@@ -39,7 +36,7 @@ class AlphaMixSampling(Strategy):
 		min_alphas = torch.ones((unlabeled_size, embedding_size), dtype=torch.float)
 		candidate = torch.zeros(unlabeled_size, dtype=torch.bool)
 
-		if self.args.c_find_optimum_alpha:
+		if self.args.alpha_closed_form_approx:
 			var_emb = Variable(ulb_embedding, requires_grad=True).to(self.device)
 			out, _ = self.model.clf(var_emb, embedding=True)
 			loss = F.cross_entropy(out, pred_1.to(self.device))
@@ -48,13 +45,13 @@ class AlphaMixSampling(Strategy):
 		else:
 			grads = None
 
-		c_alpha_cap = 0.
-		while c_alpha_cap < 1.0:
-			c_alpha_cap += self.args.c_alpha_cap
+		alpha_cap = 0.
+		while alpha_cap < 1.0:
+			alpha_cap += self.args.alpha_cap
 
 			tmp_pred_change, tmp_min_alphas = \
 				self.find_candidate_set(
-					lb_embedding, ulb_embedding, pred_1, ulb_probs, c_alpha_cap=c_alpha_cap,
+					lb_embedding, ulb_embedding, pred_1, ulb_probs, alpha_cap=alpha_cap,
 					Y=self.Y[self.idxs_lb],
 					grads=grads)
 
@@ -63,7 +60,7 @@ class AlphaMixSampling(Strategy):
 			min_alphas[is_changed] = tmp_min_alphas[is_changed]
 			candidate += tmp_pred_change
 
-			print('With alpha_cap set to %f, number of inconsistencies: %d' % (c_alpha_cap, int(tmp_pred_change.sum().item())))
+			print('With alpha_cap set to %f, number of inconsistencies: %d' % (alpha_cap, int(tmp_pred_change.sum().item())))
 
 			if candidate.sum() > n:
 				break
@@ -98,8 +95,8 @@ class AlphaMixSampling(Strategy):
 		return np.array(selected_idxs), ulb_embedding, pred_1, ulb_probs, u_selected_idxs, idxs_unlabeled[candidate]
 
 	def find_alpha(self):
-		assert self.args.c_num_mix <= self.args.n_label - (
-			0 if self.args.c_use_highest_class_mix else 1), 'c_num_mix should not be greater than number of classes'
+		assert self.args.alpha_num_mix <= self.args.n_label - (
+			0 if self.args.alpha_use_highest_class_mix else 1), 'c_num_mix should not be greater than number of classes'
 
 		self.query_count += 1
 
@@ -118,29 +115,29 @@ class AlphaMixSampling(Strategy):
 
 		lb_embedding = self.get_embedding(self.X[self.idxs_lb], self.Y[self.idxs_lb])
 
-		c_alpha_cap = 0.
-		for i in range(self.args.c_alpha_scales if self.args.c_alpha_growth_method == 'exponential' else int(pow(2, self.args.c_alpha_scales) - 1)):
-			if self.args.c_alpha_growth_method == 'exponential':
-				c_alpha_cap = self.args.c_alpha_cap / (pow(2, self.args.c_alpha_scales - i - 1))
+		alpha_cap = 0.
+		for i in range(self.args.alpha_alpha_scales if self.args.alpha_alpha_growth_method == 'exponential' else int(pow(2, self.args.alpha_alpha_scales) - 1)):
+			if self.args.alpha_alpha_growth_method == 'exponential':
+				alpha_cap = self.args.alpha_cap / (pow(2, self.args.alpha_alpha_scales - i - 1))
 			else:
-				#c_alpha_cap *= float(n * (1 if self.args.c_max_changes <= 0 else self.args.c_max_changes)) / pred_change.sum().item()
-				c_alpha_cap += self.args.c_alpha_cap / (pow(2, self.args.c_alpha_scales - 1))
+				#alpha_cap *= float(n * (1 if self.args.alpha_max_changes <= 0 else self.args.alpha_max_changes)) / pred_change.sum().item()
+				alpha_cap += self.args.alpha_cap / (pow(2, self.args.alpha_alpha_scales - 1))
 
 			tmp_pred_change, tmp_pred_change_sum, tmp_min_alphas, tmp_min_added_feats, tmp_cf_probs, _, tmp_min_mixing_labels, tmp_min_cf_feats = \
 				self.find_candidate_set(
-					lb_embedding, ulb_embedding, pred_1, ulb_probs, probs_sort_idxs, c_alpha_cap=c_alpha_cap,
+					lb_embedding, ulb_embedding, pred_1, ulb_probs, probs_sort_idxs, alpha_cap=alpha_cap,
 					Y=self.Y[self.idxs_lb])
 
 			if tmp_pred_change.sum() > 0:
-				print('selected alpha_max %f' % c_alpha_cap)
-				self.writer.add_scalar('stats/alpha_cap', c_alpha_cap, self.query_count)
+				print('selected alpha_max %f' % alpha_cap)
+				self.writer.add_scalar('stats/alpha_cap', alpha_cap, self.query_count)
 
-				return c_alpha_cap
+				return alpha_cap
 
 		print('no labelled sample change!!!')
 		return 0.5
 
-	def find_candidate_set(self, lb_embedding, ulb_embedding, pred_1, ulb_probs, c_alpha_cap, Y, grads):
+	def find_candidate_set(self, lb_embedding, ulb_embedding, pred_1, ulb_probs, alpha_cap, Y, grads):
 
 		unlabeled_size = ulb_embedding.size(0)
 		embedding_size = ulb_embedding.size(1)
@@ -148,8 +145,8 @@ class AlphaMixSampling(Strategy):
 		min_alphas = torch.ones((unlabeled_size, embedding_size), dtype=torch.float)
 		pred_change = torch.zeros(unlabeled_size, dtype=torch.bool)
 
-		if self.args.c_find_optimum_alpha:
-			c_alpha_cap /= math.sqrt(embedding_size)
+		if self.args.alpha_closed_form_approx:
+			alpha_cap /= math.sqrt(embedding_size)
 			grads = grads.to(self.device)
 			
 		for i in range(self.args.n_label):
@@ -158,9 +155,9 @@ class AlphaMixSampling(Strategy):
 				emb = lb_embedding
 			anchor_i = emb.mean(dim=0).view(1, -1).repeat(unlabeled_size, 1)
 
-			if self.args.c_find_optimum_alpha:
+			if self.args.alpha_closed_form_approx:
 				embed_i, ulb_embed = anchor_i.to(self.device), ulb_embedding.to(self.device)
-				alpha = self.calculate_optimum_alpha(c_alpha_cap, embed_i, ulb_embed, grads)
+				alpha = self.calculate_optimum_alpha(alpha_cap, embed_i, ulb_embed, grads)
 
 				embedding_mix = (1 - alpha) * ulb_embed + alpha * embed_i
 				out, _ = self.model.clf(embedding_mix, embedding=True)
@@ -169,9 +166,9 @@ class AlphaMixSampling(Strategy):
 
 				pc = out.argmax(dim=1) != pred_1
 			else:
-				alpha = self.generate_alpha(unlabeled_size, embedding_size, c_alpha_cap)
-				if self.args.c_learn:
-					alpha, pc = self.learn_alpha(ulb_embedding, pred_1, anchor_i, alpha, c_alpha_cap,
+				alpha = self.generate_alpha(unlabeled_size, embedding_size, alpha_cap)
+				if self.args.alpha_opt:
+					alpha, pc = self.learn_alpha(ulb_embedding, pred_1, anchor_i, alpha, alpha_cap,
 												 log_prefix=str(i))
 				else:
 					embedding_mix = (1 - alpha) * ulb_embedding + alpha * anchor_i
@@ -214,20 +211,20 @@ class AlphaMixSampling(Strategy):
 	def retrieve_anchor(self, embeddings, count):
 		return embeddings.mean(dim=0).view(1, -1).repeat(count, 1)
 
-	def generate_alpha(self, size, embedding_size, c_alpha_cap):
+	def generate_alpha(self, size, embedding_size, alpha_cap):
 		alpha = torch.normal(
-			mean=c_alpha_cap / 2.0,
-			std=c_alpha_cap / 2.0,
+			mean=alpha_cap / 2.0,
+			std=alpha_cap / 2.0,
 			size=(size, embedding_size))
 
 		alpha[torch.isnan(alpha)] = 1
 
-		return self.clamp_alpha(alpha, c_alpha_cap)
+		return self.clamp_alpha(alpha, alpha_cap)
 
-	def clamp_alpha(self, alpha, c_alpha_cap):
-		return torch.clamp(alpha, min=1e-8, max=c_alpha_cap)
+	def clamp_alpha(self, alpha, alpha_cap):
+		return torch.clamp(alpha, min=1e-8, max=alpha_cap)
 
-	def learn_alpha(self, org_embed, labels, anchor_embed, alpha, c_alpha_cap, log_prefix=''):
+	def learn_alpha(self, org_embed, labels, anchor_embed, alpha, alpha_cap, log_prefix=''):
 		labels = labels.to(self.device)
 		min_alpha = torch.ones(alpha.size(), dtype=torch.float)
 		pred_changed = torch.zeros(labels.size(0), dtype=torch.bool)
@@ -236,16 +233,16 @@ class AlphaMixSampling(Strategy):
 
 		self.model.clf.eval()
 
-		for i in range(self.args.c_learning_iters):
+		for i in range(self.args.alpha_learning_iters):
 			tot_nrm, tot_loss, tot_clf_loss = 0., 0., 0.
-			for b in range(math.ceil(float(alpha.size(0)) / self.args.c_learn_batch_size)):
+			for b in range(math.ceil(float(alpha.size(0)) / self.args.alpha_learn_batch_size)):
 				self.model.clf.zero_grad()
-				start_idx = b * self.args.c_learn_batch_size
-				end_idx = min((b + 1) * self.args.c_learn_batch_size, alpha.size(0))
+				start_idx = b * self.args.alpha_learn_batch_size
+				end_idx = min((b + 1) * self.args.alpha_learn_batch_size, alpha.size(0))
 
 				l = alpha[start_idx:end_idx]
 				l = torch.autograd.Variable(l.to(self.device), requires_grad=True)
-				opt = torch.optim.Adam([l], lr=self.args.c_learning_rate / (1. if i < self.args.c_learning_iters * 2 / 3 else 10.))
+				opt = torch.optim.Adam([l], lr=self.args.alpha_learning_rate / (1. if i < self.args.alpha_learning_iters * 2 / 3 else 10.))
 				e = org_embed[start_idx:end_idx].to(self.device)
 				c_e = anchor_embed[start_idx:end_idx].to(self.device)
 				embedding_mix = (1 - l) * e + l * c_e
@@ -267,11 +264,11 @@ class AlphaMixSampling(Strategy):
 
 				clf_loss *= -1
 
-				loss = self.args.c_clf_coef * clf_loss + self.args.c_l2_coef * l2_nrm
+				loss = self.args.alpha_clf_coef * clf_loss + self.args.alpha_l2_coef * l2_nrm
 				loss.sum().backward(retain_graph=True)
 				opt.step()
 
-				l = self.clamp_alpha(l, c_alpha_cap)
+				l = self.clamp_alpha(l, alpha_cap)
 
 				alpha[start_idx:end_idx] = l.detach().cpu()
 

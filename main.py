@@ -1,11 +1,9 @@
 import argparse
-import copy
 import json
 import os
 import csv
 import time
 import math
-import random
 
 import numpy as np
 from dataset import get_dataset, get_handler, is_openml
@@ -393,7 +391,7 @@ def al_train(args, train_args, train_params, strategy_name):
     if not os.path.exists(main_path):
         os.makedirs(main_path)
 
-    general_path = os.path.join(main_path, ('' if args.general_id < 0 else (str(args.general_id) + '_')) +
+    general_path = os.path.join(main_path,
                                 'init' + str(args.n_init_lb) + '_query' + str(args.n_query) + '_' + str(args.query_growth_ratio) +
                                 '_rounds' + str(args.n_round) + '_' + train_args.model + '_emb' + str(train_args.emb_size) +
                                 '_bs' + str(train_args.batch_size) + ('_augmentation' if train_args.data_augmentation else '') +
@@ -432,8 +430,7 @@ def save_args(args, path, name):
 
 
 def al_train_sub_experiment(args, train_args, train_params, strategy_name, general_path, seed):
-    exp_name = ('' if args.sub_id < 0 else (str(args.sub_id) + '_')) + strategy_name + '_' + \
-               ('' if args.sub_name is None else (args.sub_name + '_')) + 'seed' + str(seed)
+    exp_name = strategy_name + '_seed' + str(seed)
 
     sub_path = os.path.join(general_path, exp_name)
     if not os.path.exists(sub_path):
@@ -734,13 +731,10 @@ if __name__ == "__main__":
                                                           'CIFAR100', 'MiniImageNet',
                                                           'domain_net-real', 'mini_domain_net-real', 'tiny_domain_net-real',
                                                           'openml_6', 'openml_155'])
-    parser.add_argument('--n_label', type=int, default=10)
+    parser.add_argument('--n_label', type=int, default=10, help='The number of distinct classes in the dataset.')
 
     parser.add_argument('--data_dir', type=str, default='./data')
     parser.add_argument('--log_dir', type=str, default='./logs')
-    parser.add_argument('--general_id', type=int, default=-1, help='The ID of the general experiment in which different strategies are going to be compared.')
-    parser.add_argument('--sub_id', type=int, default=-1, help='The ID of the sub-experiment in which different seeds of that are going to be accumulated and compared to each other')
-    parser.add_argument('--sub_name', type=str, default=None)
     parser.add_argument('--save_checkpoints', action='store_const', default=False, const=True)
 
     parser.add_argument('--save_images', action="store_const", default=False, const=True)
@@ -766,17 +760,18 @@ if __name__ == "__main__":
     parser.add_argument('--max_iter', type=int, default=50)
 
     # AlphaMix hyper-parameters
-    parser.add_argument('--c_learning_rate', type=float, default=0.1,
+    parser.add_argument('--alpha_cap', type=float, default=0.03125)
+    parser.add_argument('--alpha_opt', action="store_const", default=False, const=True)
+    parser.add_argument('--alpha_closed_form_approx', action="store_const", default=False, const=True)
+
+    # Gradient descent Alpha optimisation
+    parser.add_argument('--alpha_learning_rate', type=float, default=0.1,
                         help='The learning rate of finding the optimised alpha')
-    parser.add_argument('--c_clf_coef', type=float, default=1.0)
-    parser.add_argument('--c_l2_coef', type=float, default=0.01)
-    parser.add_argument('--c_learning_iters', type=int, default=5,
+    parser.add_argument('--alpha_clf_coef', type=float, default=1.0)
+    parser.add_argument('--alpha_l2_coef', type=float, default=0.01)
+    parser.add_argument('--alpha_learning_iters', type=int, default=5,
                         help='The number of iterations for learning alpha')
-    parser.add_argument('--c_learn', action="store_const", default=False, const=True)
-    parser.add_argument('--c_max_alpha', action="store_const", default=False, const=True)
-    parser.add_argument('--c_learn_batch_size', type=int, default=1000000)
-    parser.add_argument('--c_alpha_cap', type=float, default=0.03125)
-    parser.add_argument('--c_find_optimum_alpha', action="store_const", default=False, const=True)
+    parser.add_argument('--alpha_learn_batch_size', type=int, default=1000000)
 
     args, _ = parser.parse_known_args()
 
