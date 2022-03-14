@@ -70,28 +70,14 @@ def get_openml_id(name):
 def get_dataset(name, data_dir):
     if name == 'MNIST':
         return get_MNIST(data_dir)
-    if name == 'Imbalanced_MNIST':
-        return get_Imbalanced_MNIST(data_dir)
-    if name == 'MiniMNIST':
-        return get_MiniMNIST(data_dir)
-    if name == 'SmallMNIST':
-        return get_SmallMNIST(data_dir)
     if name == 'EMNIST':
         return get_EMNIST(data_dir)
-    if name == 'Balanced_EMNIST':
-        return get_Balanced_EMNIST(data_dir)
-    elif name == 'FashionMNIST':
-        return get_FashionMNIST(data_dir)
     elif name == 'SVHN':
         return get_SVHN(data_dir)
-    elif name == 'MiniSVHN':
-        return get_MiniSVHN(data_dir)
     elif name == 'CIFAR10':
         return get_CIFAR10(data_dir)
     elif name == 'CIFAR100':
         return get_CIFAR100(data_dir)
-    elif name == 'ImageNet':
-        return get_ImageNet(data_dir)
     elif name == 'MiniImageNet':
         return get_MiniImageNet(data_dir)
     elif name == 'domain_net-real':
@@ -113,80 +99,6 @@ def get_MNIST(data_dir):
     Y_te = raw_te.targets
     return X_tr, Y_tr, X_te, Y_te
 
-def get_Imbalanced_MNIST(data_dir):
-    raw_tr = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=True, download=True)
-    raw_te = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=False, download=True)
-    X_tr = raw_tr.data
-    Y_tr = raw_tr.targets
-    X_te = raw_te.data
-    Y_te = raw_te.targets
-
-    selection = torch.zeros(Y_tr.size(0), dtype=torch.bool)
-    selection[Y_tr >= 5] = True
-    for i in range(5):
-        idxs = np.arange(Y_tr.size(0))
-        idxs = idxs[Y_tr == i][:int(Y_tr.size(0)/ 100)]
-        selection[idxs] = True
-
-    Y_tr = Y_tr[selection]
-    X_tr = X_tr[selection]
-
-    return X_tr, Y_tr, X_te, Y_te
-
-
-def get_MiniMNIST(data_dir):
-    raw_tr = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=True, download=True)
-    raw_te = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=False, download=True)
-    X_tr = raw_tr.data
-    Y_tr = raw_tr.targets
-    X_te = raw_te.data
-    Y_te = raw_te.targets
-
-    idxs = Y_tr < 4
-    #idxs = (Y_tr == 1) + (Y_tr == 6) + (Y_tr == 7) + (Y_tr == 9)
-    X_tr = X_tr[idxs]
-    Y_tr = Y_tr[idxs]
-
-    #Y_tr[Y_tr == 1] = 0
-    #Y_tr[Y_tr == 6] = 1
-    #Y_tr[Y_tr == 7] = 2
-    #Y_tr[Y_tr == 9] = 3
-
-    idxs = Y_te < 4
-    #idxs = (Y_te == 1) + (Y_te == 7) + (Y_te == 6) + (Y_te == 9)
-    X_te = X_te[idxs]
-    Y_te = Y_te[idxs]
-
-    #Y_te[Y_te == 1] = 0
-    #Y_te[Y_te == 6] = 1
-    #Y_te[Y_te == 7] = 2
-    #Y_te[Y_te == 9] = 3
-
-    return X_tr, Y_tr, X_te, Y_te
-
-
-def get_SmallMNIST(data_dir):
-    raw_tr = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=True, download=True)
-    raw_te = datasets.MNIST(os.path.join(data_dir, 'MNIST'), train=False, download=True)
-    X_tr = raw_tr.data
-    Y_tr = raw_tr.targets
-    X_te = raw_te.data
-    Y_te = raw_te.targets
-
-    idxs_tmp = np.arange(Y_tr.shape[0])
-    np.random.shuffle(idxs_tmp)
-    X_tr = X_tr[idxs_tmp]
-    Y_tr = Y_tr[idxs_tmp]
-
-    Small_X_tr = []
-    Small_Y_tr = []
-    for i in range(Y_tr.max().item() + 1):
-        idx = (Y_tr == i).nonzero().squeeze()
-        Small_X_tr += X_tr[idx[:600]]
-        Small_Y_tr += Y_tr[idx[:600]]
-
-    return torch.stack(Small_X_tr), torch.tensor(Small_Y_tr), X_te, Y_te
-
 
 def get_EMNIST(data_dir):
     raw_tr = datasets.EMNIST(os.path.join(data_dir, 'EMNIST'), train=True, download=True, split='letters')
@@ -198,26 +110,6 @@ def get_EMNIST(data_dir):
     return X_tr, Y_tr, X_te, Y_te
 
 
-def get_Balanced_EMNIST(data_dir):
-    raw_tr = datasets.EMNIST(os.path.join(data_dir, 'EMNIST'), train=True, download=True, split='balanced')
-    raw_te = datasets.EMNIST(os.path.join(data_dir, 'EMNIST'), train=False, download=True, split='balanced')
-    X_tr = raw_tr.data
-    Y_tr = raw_tr.targets# - 1
-    X_te = raw_te.data
-    Y_te = raw_te.targets# - 1
-    return X_tr, Y_tr, X_te, Y_te
-
-
-def get_FashionMNIST(data_dir):
-    raw_tr = datasets.FashionMNIST(os.path.join(data_dir, 'FashionMNIST'), train=True, download=True)
-    raw_te = datasets.FashionMNIST(os.path.join(data_dir, 'FashionMNIST'), train=False, download=True)
-    X_tr = raw_tr.train_data
-    Y_tr = raw_tr.train_labels
-    X_te = raw_te.test_data
-    Y_te = raw_te.test_labels
-    return X_tr, Y_tr, X_te, Y_te
-
-
 def get_SVHN(data_dir):
     data_tr = datasets.SVHN(os.path.join(data_dir, 'SVHN'), split='train', download=True)
     data_te = datasets.SVHN(os.path.join(data_dir, 'SVHN'), split='test', download=True)
@@ -225,24 +117,6 @@ def get_SVHN(data_dir):
     Y_tr = torch.from_numpy(data_tr.labels)
     X_te = data_te.data
     Y_te = torch.from_numpy(data_te.labels)
-    return X_tr, Y_tr, X_te, Y_te
-
-
-def get_MiniSVHN(data_dir):
-    data_tr = datasets.SVHN(os.path.join(data_dir, 'SVHN'), split='train', download=True)
-    data_te = datasets.SVHN(os.path.join(data_dir, 'SVHN'), split='test', download=True)
-    X_tr = data_tr.data
-    Y_tr = torch.from_numpy(data_tr.labels)
-    X_te = data_te.data
-    Y_te = torch.from_numpy(data_te.labels)
-
-    idxs = Y_tr < 4
-    X_tr = X_tr[idxs]
-    Y_tr = Y_tr[idxs]
-
-    idxs = Y_te < 4
-    X_te = X_te[idxs]
-    Y_te = Y_te[idxs]
     return X_tr, Y_tr, X_te, Y_te
 
 
@@ -259,16 +133,6 @@ def get_CIFAR10(data_dir):
 def get_CIFAR100(data_dir):
     data_tr = datasets.CIFAR100(os.path.join(data_dir, 'CIFAR100'), train=True, download=True)
     data_te = datasets.CIFAR100(os.path.join(data_dir, 'CIFAR100'), train=False, download=True)
-    X_tr = data_tr.data
-    Y_tr = torch.from_numpy(np.array(data_tr.targets))
-    X_te = data_te.data
-    Y_te = torch.from_numpy(np.array(data_te.targets))
-    return X_tr, Y_tr, X_te, Y_te
-
-
-def get_ImageNet(data_dir):
-    data_tr = datasets.ImageNet(os.path.join(data_dir, 'ImageNet'), train=True, download=True)
-    data_te = datasets.ImageNet(os.path.join(data_dir, 'ImageNet'), train=False, download=True)
     X_tr = data_tr.data
     Y_tr = torch.from_numpy(np.array(data_tr.targets))
     X_te = data_te.data
