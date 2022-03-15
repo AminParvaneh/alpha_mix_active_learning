@@ -1,5 +1,5 @@
-# Active Learning by Feature Mixing
-PyTorch implementation of ALFA-Mix. For details, read the paper Active Learning by Feature Mixing, which is accepted in CVPR 2022.
+# Active Learning by Feature Mixing (ALFA-Mix)
+PyTorch implementation of ALFA-Mix. For details, read the paper [Active Learning by Feature Mixing](https://arxiv.org/abs/2203.07034), which is accepted in CVPR 2022.
 
 <div align="center">
   <img width="45%" alt="ALFA-Mix" src="Img1.png">
@@ -23,4 +23,14 @@ python main.py --data_name MNIST --data_dir your_data_directory --n_init_lb 100 
 To aggregate all the results accross various settings and create the comparison matrix, use the following script:
 ```python
 python agg_results.py --dir_type general 
+```
+
+## Citing
+```
+@article{Parvaneh2022alfamix,
+    author    = {Amin Parvaneh and Ehsan Abbasnejad and Damien Teney and Reza Haffari and Anton van den Hengel and Javen Qinfeng Shi},
+    title     = {Active Learning by Feature Mixing},
+    journal   = {arXiv preprint arXiv:2203.07034},
+    year      = {2022},
+}
 ```
