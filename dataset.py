@@ -11,51 +11,40 @@ import pickle
 
 
 mini_domain_net_class_ids = {
-    #'airplane': 2,
-    'bat': 21,
-    'bathtub': 22,
-    'bear': 24,
-    'bed': 26,
-    'bench': 29,
-    'bicycle': 30,
-    'bird': 32,
-    'bus': 48,
-    'butterfly': 50,
-    'car': 62,
-    'carrot': 63,
-    'cat': 65,
-    'chair': 69,
-    'couch': 81,
-    'cruise_ship': 87,
-    'dog': 92,
-    'pizza': 226,
-    'strawberry': 291,
-    'table': 302,
-    'zebra': 345,
+    'bat': 20,
+    'bathtub': 21,
+    'bear': 23,
+    'bed': 25,
+    'bench': 28,
+    'bicycle': 29,
+    'bird': 31,
+    'bus': 47,
+    'butterfly': 49,
+    'car': 61,
+    'carrot': 62,
+    'cat': 64,
+    'chair': 68,
+    'couch': 80,
+    'cruise_ship': 86,
+    'dog': 91,
+    'pizza': 225,
+    'strawberry': 290,
+    'table': 301,
+    'zebra': 343,
 }
 
 
 tiny_domain_net_class_ids = {
-    'bat': 21,
-    #'bathtub': 22,
-    'bear': 24,
-    #'bed': 26,
-    #'bench': 29,
-    'bicycle': 30,
-    'bird': 32,
-    'bus': 48,
-    'butterfly': 50,
-    'car': 62,
-    #'carrot': 63,
-    'cat': 65,
-    #'chair': 69,
-    #'couch': 81,
-    #'cruise_ship': 87,
-    'dog': 92,
-    #'pizza': 226,
-    #'strawberry': 291,
-    #'table': 302,
-    'zebra': 345,
+    'bat': 20,
+    'bear': 23,
+    'bicycle': 29,
+    'bird': 31,
+    'bus': 47,
+    'butterfly': 49,
+    'car': 61,
+    'cat': 64,
+    'dog': 91,
+    'zebra': 343,
 }
 
 
@@ -190,80 +179,86 @@ def get_MiniImageNet(data_dir):
     return X_tr, Y_tr, X_te, Y_te
 
 
-def get_DomainNet_Real(data_dir, type='full'):
+def get_DomainNet_Real(data_dir):
     data_dir = os.path.join(data_dir, 'domain_net-real')
-    import pandas as pd
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_train.feather'))
 
     X_tr, Y_tr, X_te, Y_te = [], [], [], []
-    label_map = {}
 
-    for idx, row in df.iterrows():
-        X_tr.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'train', row[0]))
-        if row[1] not in label_map:
-            label_map[row[1]] = len(label_map)
-        Y_tr.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_train.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            X_tr.append(os.path.join(data_dir, name))
+            Y_tr.append(int(label))
 
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_test.feather'))
-    for idx, row in df.iterrows():
-        X_te.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'test', row[0]))
-        if row[1] not in label_map:
-            label_map[row[1]] = len(label_map) + 1
-        Y_te.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_test.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            X_te.append(os.path.join(data_dir, name))
+            Y_te.append(int(label))
 
     return np.array(X_tr), torch.from_numpy(np.array(Y_tr)), np.array(X_te), torch.from_numpy(np.array(Y_te))
 
 
-def get_Mini_DomainNet_Real(data_dir, type='full'):
+def get_Mini_DomainNet_Real(data_dir):
     data_dir = os.path.join(data_dir, 'domain_net-real')
-    import pandas as pd
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_train.feather'))
 
     X_tr, Y_tr, X_te, Y_te = [], [], [], []
     label_map = {}
 
-    for idx, row in df.iterrows():
-        if row[1] in mini_domain_net_class_ids:
-            X_tr.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'train', row[0]))
-            if row[1] not in label_map:
-                label_map[row[1]] = len(label_map)
-            Y_tr.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_train.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            label = int(label)
+            if label in mini_domain_net_class_ids.values():
+                X_tr.append(os.path.join(data_dir, name))
+                if label not in label_map:
+                    label_map[label] = len(label_map)
+                Y_tr.append(label_map[label])
 
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_test.feather'))
-    for idx, row in df.iterrows():
-        #print(row[1])
-        if row[1] in mini_domain_net_class_ids:
-            X_te.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'test', row[0]))
-            if row[1] not in label_map:
-                label_map[row[1]] = len(label_map) + 1
-            Y_te.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_test.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            label = int(label)
+            if label in mini_domain_net_class_ids.values():
+                X_te.append(os.path.join(data_dir, name))
+                if label not in label_map:
+                    label_map[label] = len(label_map)
+                Y_te.append(label_map[label])
 
     return np.array(X_tr), torch.from_numpy(np.array(Y_tr)), np.array(X_te), torch.from_numpy(np.array(Y_te))
 
 
-def get_Tiny_DomainNet_Real(data_dir, type='full'):
+def get_Tiny_DomainNet_Real(data_dir):
     data_dir = os.path.join(data_dir, 'domain_net-real')
-    import pandas as pd
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_train.feather'))
 
     X_tr, Y_tr, X_te, Y_te = [], [], [], []
     label_map = {}
 
-    for idx, row in df.iterrows():
-        if row[1] in tiny_domain_net_class_ids:
-            X_tr.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'train', row[0]))
-            if row[1] not in label_map:
-                label_map[row[1]] = len(label_map)
-            Y_tr.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_train.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            label = int(label)
+            if label in tiny_domain_net_class_ids.values():
+                X_tr.append(os.path.join(data_dir, name))
+                if label not in label_map:
+                    label_map[label] = len(label_map)
+                Y_tr.append(label_map[label])
 
-    df = pd.read_feather(os.path.join(data_dir, 'labels_%s' % type, 'labels_test.feather'))
-    for idx, row in df.iterrows():
-        #print(row[1])
-        if row[1] in tiny_domain_net_class_ids:
-            X_te.append(os.path.join(data_dir, 'domain_net-real_%s' % type, 'test', row[0]))
-            if row[1] not in label_map:
-                label_map[row[1]] = len(label_map) + 1
-            Y_te.append(label_map[row[1]])
+    with open(os.path.join(data_dir, 'real_test.txt'), 'r') as f:
+        for item in f.readlines():
+            feilds = item.strip()
+            name, label = feilds.split(' ')
+            label = int(label)
+            if label in tiny_domain_net_class_ids.values():
+                X_te.append(os.path.join(data_dir, name))
+                if label not in label_map:
+                    label_map[label] = len(label_map)
+                Y_te.append(label_map[label])
 
     return np.array(X_tr), torch.from_numpy(np.array(Y_tr)), np.array(X_te), torch.from_numpy(np.array(Y_te))
 
@@ -307,29 +302,13 @@ def get_openml(data_dir, dataset_id):
 def get_handler(name):
     if name == 'MNIST':
         return DataHandler1
-    if name == 'Imbalanced_MNIST':
-        return DataHandler1
-    if name == 'MiniMNIST':
-        return DataHandler1
-    if name == 'SmallMNIST':
-        return DataHandler1
     if name == 'EMNIST':
         return DataHandler1
-    if name == 'Balanced_EMNIST':
-        return DataHandler1
-    if name == 'MNIST_3_32_32':
-        return DataHandler2
-    elif name == 'FashionMNIST':
-        return DataHandler1
     elif name == 'SVHN':
-        return DataHandler2
-    elif name == 'MiniSVHN':
         return DataHandler2
     elif name == 'CIFAR10':
         return DataHandler3
     elif name == 'CIFAR100':
-        return DataHandler3
-    elif name == 'ImageNet':
         return DataHandler3
     elif name == 'MiniImageNet':
         return DataHandler3
