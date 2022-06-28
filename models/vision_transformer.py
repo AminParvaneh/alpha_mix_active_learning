@@ -387,22 +387,3 @@ class VisionTransformerClassifier(nn.Module):
         out = self.classifier(embd)
 
         return out, embd
-
-    def forward_with_features(self, x):
-        #import ipdb;ipdb.set_trace()
-        intermediate_output = self.vit_model.get_intermediate_layers(x, self.n)
-        outs = [x[:, 0] for x in intermediate_output]
-        if self.avgpool:
-            outs.append(torch.mean(intermediate_output[-1][:, 1:], dim=1))
-
-        feats = []
-        for out in outs:
-            feats.append(out.view((out.size(0), out.size(1), 1, 1)))
-        embd = torch.cat(outs, dim=-1)
-
-        if self.hidden_layers:
-            embd = self.hidden_layers(embd)
-
-        out = self.classifier(embd)
-
-        return out, feats

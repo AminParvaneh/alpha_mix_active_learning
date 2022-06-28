@@ -45,21 +45,6 @@ class Net1(nn.Module):
         x = self.fc2(x)
         return x, e1
 
-    def forward_with_features(self, x):
-        feats = []
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        feats.append(x)
-        x = x.view(-1, 320)
-
-        e1 = F.relu(self.fc1(x))
-
-        x = F.dropout(e1, training=self.training)
-        x = self.fc2(x)
-
-        return x, feats
-
     def get_embedding_dim(self):
         return 50
 
@@ -94,21 +79,6 @@ class Net2(nn.Module):
         x = self.fc3(x)
         return x, e1
 
-    def forward_with_features(self, x):
-        feats = []
-        x = F.relu(self.conv1(x))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv3_drop(self.conv3(x)), 2))
-        feats.append(x)
-        x = x.view(-1, 1152)
-        x = F.relu(self.fc1(x))
-        e1 = F.relu(self.fc2(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc3(x)
-        return x, feats
-
     def get_embedding_dim(self):
         return 50
 
@@ -140,20 +110,6 @@ class Net3(nn.Module):
         x = self.fc2(x)
         return x, e1
 
-    def forward_with_features(self, x):
-        feats = []
-        x = F.relu(self.conv1(x))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        feats.append(x)
-        x = x.view(-1, 1024)
-        e1 = F.relu(self.fc1(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc2(x)
-        return x, feats
-
     def get_embedding_dim(self):
         return 50
 
@@ -184,20 +140,6 @@ class Net4(nn.Module):
         x = F.dropout(e1, training=self.training)
         x = self.fc2(x)
         return x, e1
-
-    def forward_with_features(self, x):
-        feats = []
-        x = F.relu(self.conv1(x))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        feats.append(x)
-        x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        feats.append(x)
-        x = x.view(-1, 1024)
-        e1 = F.relu(self.fc1(x))
-        x = F.dropout(e1, training=self.training)
-        x = self.fc2(x)
-        return x, feats
 
     def get_embedding_dim(self):
         return 500
@@ -239,21 +181,6 @@ class MLPNet(nn.Module):
 
         out = self.lm2(emb)
         return (out, emb) if self.return_embeddings else out
-
-    def forward_with_features(self, x):
-        feats = []
-        x = x.view(-1, self.dim)
-        emb = F.relu(self.lm1(x))
-        feats.append(emb.view((emb.size(0), emb.size(1), 1, 1)))
-        if self.do:
-            emb = self.do(emb)
-
-        if self.add_hidden_layer:
-            emb = self.lmh(emb)
-
-        out = self.lm2(emb)
-
-        return out, feats
 
     def get_embedding_dim(self):
         return self.emb_size

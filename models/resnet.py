@@ -59,24 +59,6 @@ class ResNetClassifier(nn.Module):
 
         return out, embd
 
-    def forward_with_features(self, x):
-        feats = []
-        out = x
-        for idx, mdl in enumerate(list(self.resnet)):
-            out = mdl(out)
-            if idx > 3 and idx < 8:     # TODO: this is for resnet18 only
-                feats.append(out)
-
-        batch_size, feature_size, x, y = out.size()
-        embd = out.view(batch_size, feature_size)
-
-        if self.hidden_layers:
-            embd = self.hidden_layers(embd)
-
-        out = self.classifier(embd)
-
-        return out, feats
-
     def get_embedding_dim(self):
         return self.embedding_size
 

@@ -59,25 +59,6 @@ class DenseNetClassifier(nn.Module):
 
         return out, embd
 
-    def forward_with_features(self, x):
-        feats = []
-        out = x
-        for idx, mdl in enumerate(list(self.features)):
-            out = mdl(out)
-            if idx in [4, 6, 8, 10]:            # this is for densenet-121 only
-                feats.append(out)
-
-        embd = F.relu(out, inplace=True)
-        embd = F.adaptive_avg_pool2d(embd, (1, 1))
-        embd = torch.flatten(embd, 1)
-
-        if self.hidden_layers:
-            embd = self.hidden_layers(embd)
-
-        out = self.classifier(embd)
-
-        return out, feats
-
     def get_embedding_dim(self):
         return self.embedding_size
 

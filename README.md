@@ -13,22 +13,34 @@ The dependencies are in [`requirements.txt`](requirements.txt). Python=3.8.3 is 
 
 ## Datasets
 The code supports torchvision built-in implementations of MNIST, EMNIST, SVHN, CIFAR10 and CIFAR100.
-Additionally, it supports [https://www.kaggle.com/datasets/whitemoon/miniimagenet?select=mini-imagenet-cache-val.pkl](MiniImageNet), [http://ai.bu.edu/M3SDA/](DomainNet-Real) (and two subsets of that) and [https://www.openml.org/](openml) datasets.
+Additionally, it supports [MiniImageNet](https://www.kaggle.com/datasets/whitemoon/miniimagenet?select=mini-imagenet-cache-val.pkl), [DomainNet-Real](http://ai.bu.edu/M3SDA/) (and two subsets of that) and [OpenML](https://www.openml.org/) datasets.
 
 ## Training
-For running an AL strategy in a single setting, use the following script that by default uses 5 different initial random seeds for the specified setting. 
+For running ALFA-Mix in a single setting, use the following script that by default uses 5 different initial random seeds: 
 ```python
-python main.py --data_name MNIST --data_dir your_data_directory --n_init_lb 100 --n_query 100 --n_round 10 --learning_rate 0.001 --n_epoch 1000 --model mlp \
-               --strategy AlphaMixSampling --alpha_opt --alpha_closed_form_approx --alpha_cap 0.2
+python main.py \
+        --data_name MNIST --data_dir your_data_directory --log_dir your_log_directory \
+        --n_init_lb 100 --n_query 100 --n_round 10 --learning_rate 0.001 --n_epoch 1000 --model mlp \
+        --strategy AlphaMixSampling --alpha_opt
 ```
+To run the closed-form variation of ALFA-Mix, set `--alpha_closed_form_approx --alpha_cap 0.2`.
+It includes the implementations of all the baselines reported in the paper, including:
+* Random
+* [Entropy](https://ieeexplore.ieee.org/document/6889457)
+* [BALD](https://arxiv.org/abs/1703.02910)
+* [CoreSet](https://openreview.net/forum?id=H1aIuk-RW)
+* [Adversarial Deep Fool](https://arxiv.org/abs/1802.09841)
+* [GCNAL](https://arxiv.org/abs/2006.10219)
+* [CDAL](https://arxiv.org/abs/2008.05723)
+* [BADGE](https://arxiv.org/abs/1906.03671)
 
 ## Evaluation
-To evaluate over all the experiments and get the final comparison matrix, put all the results in a folder with this structure: Overall/Dataset/Setting (e.g. Overall/MNIST/MLP_small_budget).
-The script below explores all the settings in each dataset and acculumulate resulst to generate the overall comparison matrix:
+To evaluate over all the experiments and get the final comparison matrix, all the results should be gathered in a folder with this structure: Overall/Dataset/Setting (e.g. Overall/MNIST/MLP_small_budget).
+The script below accumulates all results over various settings in each dataset and generates the overall comparison matrix:
 ```python
 python agg_results.py --directory Path/Overall --dir_type general 
 ```
-By setting 'dir_type' to 'dataset' or 'setting' you can evaluate the results at dataset or setting level respectively.
+By using `dataset` or `setting` for `--dir_type`, you can evaluate the results at dataset or setting level respectively.
 
 ## Citing
 ```
