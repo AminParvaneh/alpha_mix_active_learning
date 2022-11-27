@@ -555,7 +555,7 @@ def al_train_sub_experiment(args, train_args, train_params, strategy_name, gener
     use_cuda = torch.cuda.is_available()
     print('Using %s device.' % ("cuda" if use_cuda else "cpu"))
     device = torch.device("cuda" if use_cuda else "cpu")
-    if args.strategy == 'CDALSampling':
+    if strategy_name == 'CDALSampling':
         model = CDALModel(net, net_args, handler, train_params, writer, device, init_model=True)
     else:
         model = Training(net, net_args, handler, train_params, writer, device, init_model=True)
